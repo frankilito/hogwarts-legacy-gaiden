@@ -1,0 +1,9 @@
+{
+  "name": "hogwarts-legacy-gaiden",
+  "version": "1.0.0",
+  "private": true,
+  "description": "魔法学院生活RPG同人 · Hogwarts Legacy fan gaiden (Three.js)",
+  "type": "module",
+  "scripts": { "start": "node server.mjs" },
+  "devDependencies": { "puppeteer-core": "^25.3.0", "three": "^0.170.0" }
+}

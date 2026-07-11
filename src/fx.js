@@ -274,9 +274,11 @@ export function enchantedCeiling(zone, x, y, z, w, d) {
         vec3 cloudCol = mix(vec3(0.9,0.85,0.8), vec3(0.12,0.13,0.2), smoothstep(0.5,0.8,uPhase));
         cloudCol = mix(cloudCol, vec3(0.05,0.05,0.09), uRain*0.8);
         col = mix(col, cloudCol, cloud*(0.5+uRain*0.4));
-        // 星星(夜)
-        vec2 g = floor(vUv*160.0);
-        float st = step(0.994, hash(g)) * (0.5+0.5*sin(uTime*2.0+hash(g.yx)*20.0));
+        // 星星(夜,圆点)
+        vec2 sg2 = vUv*160.0;
+        vec2 cel = floor(sg2);
+        vec2 fr2 = fract(sg2)-0.5;
+        float st = step(0.994, hash(cel)) * smoothstep(0.4, 0.05, length(fr2)) * (0.5+0.5*sin(uTime*2.0+hash(cel.yx)*20.0));
         col += vec3(1.0,0.95,0.8)*st*smoothstep(0.55,0.85,uPhase)*(1.0-cloud)*(1.0-uRain);
         gl_FragColor = vec4(col, 0.96);
       }`,
@@ -377,23 +379,40 @@ export function skyDome(zone, radius = 120, { minPhase = 0 } = {}) {
         bot = mix(bot, nightBot, smoothstep(0.55,0.8,uPhase));
         vec3 col = mix(bot, top, pow(hgt,0.8));
         col = mix(col, col*vec3(0.5,0.55,0.62), uRain*0.7);
-        // 星
+        // 星(圆点)
         vec3 nd = normalize(vPos);
         vec2 sp = nd.xz/(nd.y+1.2);
-        vec2 g = floor(sp*90.0);
-        float st = step(0.992, hash(g));
-        float tw = 0.5+0.5*sin(uTime*1.5+hash(g.yx)*30.0);
-        col += vec3(1.0,0.95,0.85)*st*tw*smoothstep(0.6,0.85,uPhase)*step(0.05,hgt)*(1.0-uRain);
+        vec2 sg = sp*90.0;
+        vec2 cell = floor(sg);
+        vec2 fr = fract(sg)-0.5;
+        float h = hash(cell);
+        float tw = 0.5+0.5*sin(uTime*1.5+hash(cell.yx)*30.0);
+        float star = step(0.992, h) * smoothstep(0.32, 0.03, length(fr)) ;
+        col += vec3(1.0,0.95,0.85)*star*tw*smoothstep(0.6,0.85,uPhase)*step(0.05,hgt)*(1.0-uRain);
         gl_FragColor = vec4(col,1.0);
       }`,
   });
   const m = new THREE.Mesh(new THREE.SphereGeometry(radius, 24, 16), mat);
   zone.group.add(m);
   zone._skyMat = mat;
+  const dayCol = new THREE.Color(0xffe8c0), duskCol = new THREE.Color(0xff9a5a), nightCol = new THREE.Color(0x7a9ac8);
+  const tmpC = new THREE.Color();
   zone.onUpdate(() => {
     mat.uniforms.uTime.value = FX.time;
-    mat.uniforms.uPhase.value = Math.max(minPhase, phase01());
+    const p = Math.max(minPhase, phase01());
+    mat.uniforms.uPhase.value = p;
     mat.uniforms.uRain.value = S.weather === 'rain' ? 1 : 0;
+    // 太阳/月亮随相位变化
+    const sun = zone._sun;
+    if (sun) {
+      if (p < 0.45) { tmpC.copy(dayCol); sun.intensity = 2.2; }
+      else if (p < 0.65) { tmpC.copy(dayCol).lerp(duskCol, (p - 0.45) / 0.2); sun.intensity = 1.5; }
+      else { tmpC.copy(nightCol); sun.intensity = 0.6; }
+      if (S.weather === 'rain') sun.intensity *= 0.5;
+      sun.color.lerp(tmpC, 0.05);
+      // 半球环境也随之呼吸
+      if (zone.hemiLight) zone.hemiLight.intensity = (zone.ambientI * 3.6) * (p > 0.65 ? 0.55 : p > 0.45 ? 0.8 : 1) * (S.weather === 'rain' ? 0.75 : 1);
+    }
   });
   return m;
 }

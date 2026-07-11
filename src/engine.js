@@ -28,7 +28,7 @@ export function initEngine(canvas) {
 
   const composer = new EffectComposer(r);
   composer.addPass(new RenderPass(E.scene, E.camera));
-  E.bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.5, 0.6, 0.82);
+  E.bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.5, 0.55, 0.9);
   composer.addPass(E.bloom);
   composer.addPass(new OutputPass());
   E.composer = composer;

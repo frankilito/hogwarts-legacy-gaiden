@@ -52,10 +52,15 @@ function startIntro() {
         ] },
         { sp: 'vance', t: '紧张、期待、好奇——都很好,那是新学年的味道。去吧,熟悉一下城堡:南边的门通往楼梯厅,那里能到达城堡的每个角落。', emo: '🙂' },
         { sp: 'vance', t: '记得看看你的日程(Tab 键)。上课、交朋友、探索……这座城堡从不辜负愿意了解它的人。', next: 'end',
-          action: () => { startQuest('main'); advanceQuest('main', 1); saveGame(); } },
+          action: () => { startQuest('main'); advanceQuest('main', 1); saveGame(); setTimeout(showControlHints, 1200); } },
       ],
     });
   }, 900);
+}
+function showControlHints() {
+  toast('🕹 WASD 移动 · 鼠标视角 · E 交互 · Tab 面板', true);
+  setTimeout(() => toast('⚔ 左键魔弹 · 1-4 咒语 · 右键护盾 · 空格翻滚 · Q 锁定'), 2600);
+  setTimeout(() => toast('🚪 大厅南侧的门通往楼梯厅——去认识一下这座城堡吧'), 5200);
 }
 
 // ---------------- 阶段变化 ----------------

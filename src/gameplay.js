@@ -214,7 +214,7 @@ function registerZoneInteracts() {
   for (const [cid, c] of Object.entries(CLASSES)) {
     const zn = zones.get(c.zone);
     if (!zn) continue;
-    const spot = { hall: [8, -6], stair: [0, -12], greenhouse: [0, 4], astro: [3, 0], potions: [0, -8] }[c.zone] || [0, 0];
+    const spot = { hall: [8, -6], stair: [0, -5], greenhouse: [0, 4], astro: [3, 0], potions: [0, -8] }[c.zone] || [0, 0];
     zn.addInteract({
       x: spot[0], z: spot[1], r: 3.2, label: `上课:${c.name}`, icon: c.icon,
       cond: () => {
@@ -427,6 +427,15 @@ function questHooksFor(npcId) {
   const hooks = [];
   const ms = questStep('main');
   const H = (t, fn, next = 'end') => hooks.push({ t: '📜 ' + t, action: fn, next });
+
+  // 任课教师:上课时段可直接通过对话开始上课
+  {
+    const [am, pm] = WEEK_SCHEDULE[S.day % 7];
+    const cur = S.phase === 1 ? am : S.phase === 2 ? pm : null;
+    if (cur && CLASSES[cur].teacher === npcId && !flag(`class_${S.day}_${S.phase}`)) {
+      hooks.push({ t: `📖 「教授,我来上${CLASSES[cur].name}了!」(开始上课)`, next: 'end', action: () => setTimeout(() => attendClass(cur), 350) });
+    }
+  }
 
   if (npcId === 'vance') {
     if (ms === 10) hooks.push({ t: '📜 「校长,地下的机关……」(做出抉择)', next: '__vanceFinal' });

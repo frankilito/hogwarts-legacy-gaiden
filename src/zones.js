@@ -270,9 +270,9 @@ export function buildStair() {
   ceil.rotation.x = Math.PI / 2; ceil.position.y = 12;
   z.group.add(ceil);
 
-  // 中央双旋转楼梯 → 顶部平台(去天文塔)
-  FXm.spiralStair(z, -8, -8, { r: 3.6, h: 8, steps: 30, turns: 1.2, dir: 1 });
-  FXm.spiralStair(z, 8, -8, { r: 3.6, h: 8, steps: 30, turns: 1.2, dir: -1 });
+  // 中央双旋转楼梯 → 顶部平台(去天文塔);整 1 圈,梯顶正好落在桥面带上
+  FXm.spiralStair(z, -8, -8, { r: 3.6, h: 8, steps: 30, turns: 1.0, dir: 1 });
+  FXm.spiralStair(z, 8, -8, { r: 3.6, h: 8, steps: 30, turns: 1.0, dir: -1 });
   // 主厅吊灯光
   for (const [lx, lz] of [[-10, -8], [10, -8], [0, 8], [0, -18]]) {
     const L = new THREE.PointLight(0xffc178, 42, 30, 1.9);
@@ -283,17 +283,19 @@ export function buildStair() {
   FXm.stainedWindow(z, -10, 6.2, -23.4, 0, { seed: 3, w: 2.2, h: 3.6 });
   FXm.stainedWindow(z, 10, 6.2, -23.4, 0, { seed: 5, w: 2.2, h: 3.6 });
   FXm.stainedWindow(z, 23.4, 6.2, -10, -Math.PI / 2, { seed: 7, w: 2.2, h: 3.6 });
-  // 顶部连桥平台
-  const bridge = new THREE.Mesh(new THREE.BoxGeometry(20, 0.4, 4), stoneMat());
+  // 顶部连桥平台(加长覆盖两侧梯顶落点)
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(23, 0.4, 4), stoneMat());
   bridge.position.set(0, 8, -8); bridge.castShadow = true; bridge.receiveShadow = true;
   z.group.add(bridge);
-  z.addRamp(-10, -8, 10, -8, 8, 8);
-  // 平台围栏
+  z.addRamp(-11.5, -8, 11.5, -8, 8, 8);
+  // 平台围栏(碰撞只在桥面高度生效,不挡下方旋转楼梯)
   instBatch(z, [
     { n: 'barrier', x: -8, y: 8.2, z: -10 }, { n: 'barrier', x: -4, y: 8.2, z: -10 }, { n: 'barrier', x: 0, y: 8.2, z: -10 }, { n: 'barrier', x: 4, y: 8.2, z: -10 }, { n: 'barrier', x: 8, y: 8.2, z: -10 },
     { n: 'barrier', x: -8, y: 8.2, z: -6, ry: Math.PI }, { n: 'barrier', x: -4, y: 8.2, z: -6, ry: Math.PI }, { n: 'barrier', x: 4, y: 8.2, z: -6, ry: Math.PI }, { n: 'barrier', x: 8, y: 8.2, z: -6, ry: Math.PI },
   ]);
-  z.addCollider(-10, -10.4, 10, -9.6, 10); z.addCollider(-10, -6.4, -2, -5.6, 10); z.addCollider(2, -6.4, 10, -5.6, 10);
+  z.addCollider(-11.5, -10.4, 11.5, -9.6, 10, 7.6);
+  z.addCollider(-11.5, -6.4, -2, -5.6, 10, 7.6);
+  z.addCollider(2, -6.4, 11.5, -5.6, 10, 7.6);
 
   // 画像墙(走廊画像 — 会动)
   FXm.portrait(z, -23.4, 3, -16, Math.PI / 2, 1);

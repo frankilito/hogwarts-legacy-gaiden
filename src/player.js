@@ -63,7 +63,7 @@ export function snapCamera() {
     const pt = head.clone().lerp(target, t);
     if (pointBlocked(pt)) { free = head.clone().lerp(target, Math.max(0.12, t - 0.12)); break; }
   }
-  free.y = Math.max(free.y, floorAt(free.x, free.z) + 0.32);
+  free.y = Math.max(free.y, floorAt(free.x, free.z, free.y) + 0.32);
   E.camera.position.copy(free);
   E.camera.lookAt(head);
 }
@@ -171,7 +171,7 @@ export function updatePlayer(dt) {
 
   // 碰撞与地面
   collide(P.pos, 0.42);
-  const fy = floorAt(P.pos.x, P.pos.z);
+  const fy = floorAt(P.pos.x, P.pos.z, P.pos.y);
   P.pos.y += (fy - P.pos.y) * Math.min(1, dt * 12);
 
   rig.group.position.copy(P.pos);
@@ -192,22 +192,30 @@ export function updatePlayer(dt) {
     if (pointBlocked(pt)) { free = head.clone().lerp(camTarget, Math.max(0.15, t - 0.14)); break; }
   }
   // 地面夹持:镜头永远不潜入地板
-  free.y = Math.max(free.y, floorAt(free.x, free.z) + 0.32);
+  free.y = Math.max(free.y, floorAt(free.x, free.z, free.y) + 0.32);
   E.camera.position.lerp(free, Math.min(1, dt * 9));
   const look = head.clone();
   look.y += 0.1;
   E.camera.lookAt(look);
   }
 
-  // 交互检测
+  // 交互检测(条件为 false 的交互点完全隐藏;返回字符串的仍显示但按下时提示原因)
   P.nearInteract = null;
   if (P.state === 'normal' || P.state === 'duel') {
     let best = null, bd = 1e9;
     for (const it of activeZone.interact) {
+      if (it.hidden) continue;
       if (it.needY != null && Math.abs(P.pos.y - it.needY) > 1.6) continue;
       const w = activeZone.W(it.x, it.z);
       const d = Math.hypot(P.pos.x - w.x, P.pos.z - w.z);
-      if (d < (it.r || 2) && d < bd) { bd = d; best = it; }
+      if (d >= (it.r || 2) || d >= bd) continue;
+      if (it.cond) {
+        let c;
+        try { c = it.cond(); } catch { c = false; }
+        if (c === false) continue;
+        it._condMsg = typeof c === 'string' ? c : null;
+      } else it._condMsg = null;
+      bd = d; best = it;
     }
     P.nearInteract = best;
   }

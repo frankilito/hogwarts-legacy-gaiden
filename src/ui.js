@@ -302,7 +302,8 @@ export function updateUI() {
   // 交互提示
   if (S.started && P.nearInteract && !window.__dialogOpen) {
     const it = P.nearInteract;
-    setPrompt(`<span class="k">E</span>${it.icon || '✋'} ${it.label}`);
+    const lock = it._condMsg ? '🔒 ' : '';
+    setPrompt(`<span class="k">E</span>${lock}${it.icon || '✋'} ${it.label}`);
   } else setPrompt(null);
   // 菜单相机漂移
   if (window.__menuCam) {

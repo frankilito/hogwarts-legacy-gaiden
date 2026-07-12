@@ -44,9 +44,9 @@ export class Zone {
   }
   // 本地转世界
   W(x, z) { return { x: x + this.offset.x, z: z + this.offset.z }; }
-  addCollider(x0, z0, x1, z1, y1 = 4) {
+  addCollider(x0, z0, x1, z1, y1 = 4, y0 = 0) {
     const w = this.offset;
-    this.colliders.push({ min: new THREE.Vector3(Math.min(x0, x1) + w.x, 0, Math.min(z0, z1) + w.z), max: new THREE.Vector3(Math.max(x0, x1) + w.x, y1, Math.max(z0, z1) + w.z) });
+    this.colliders.push({ min: new THREE.Vector3(Math.min(x0, x1) + w.x, y0, Math.min(z0, z1) + w.z), max: new THREE.Vector3(Math.max(x0, x1) + w.x, y1, Math.max(z0, z1) + w.z) });
   }
   addRamp(x0, z0, x1, z1, y0, y1) {
     const w = this.offset;
@@ -274,17 +274,23 @@ export function collide(pos, radius) {
     }
   }
 }
-export function floorAt(x, z) {
+export function floorAt(x, z, refY = Infinity) {
   if (!activeZone) return 0;
-  let y = 0;
+  // 收集所有覆盖此点的坡道高度;优先选不超过"当前高度+台阶容差"的最高层(螺旋楼梯上下圈不串层)
+  let best = 0, bestBelow = -1, minY = Infinity, any = false;
   for (const r of activeZone.ramps) {
     if (x >= Math.min(r.x0, r.x1) - 0.4 && x <= Math.max(r.x0, r.x1) + 0.4 && z >= Math.min(r.z0, r.z1) - 0.4 && z <= Math.max(r.z0, r.z1) + 0.4) {
       const dx = r.x1 - r.x0, dz = r.z1 - r.z0;
       const len2 = dx * dx + dz * dz;
       let t = len2 > 0 ? ((x - r.x0) * dx + (z - r.z0) * dz) / len2 : 0;
       t = Math.max(0, Math.min(1, t));
-      y = Math.max(y, r.y0 + (r.y1 - r.y0) * t);
+      const y = r.y0 + (r.y1 - r.y0) * t;
+      any = true;
+      minY = Math.min(minY, y);
+      if (y <= refY + 0.62 && y > bestBelow) bestBelow = y;
     }
   }
-  return y;
+  if (!any) return 0;
+  if (bestBelow >= 0) return bestBelow;
+  return Math.max(0, minY === Infinity ? 0 : Math.min(minY, refY)); // 全在上方:落回地面/最低层
 }

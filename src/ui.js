@@ -1,9 +1,11 @@
 // ui.js — HUD/菜单/面板(基础版,持续扩展)
+import * as THREE from 'three';
 import { S, on, emit, saveList, loadGame, saveGame, hasAnySave, xpNeed, phaseInfo, dateStr } from './state.js';
 import { HOUSES, TALENTS, TRAITS, BODIES, HAIRS, HAIR_COLORS, SKINS, SPELLS, PHASES } from './data.js';
 import { applyQuality, E } from './engine.js';
 import { Input } from './input.js';
 import { P, createPlayerRig, teleport } from './player.js';
+import { zones, setZone } from './castle.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -226,27 +228,23 @@ function previewRig() {
   _previewTimer = setTimeout(() => {
     Object.assign(S, { house: cc.house, body: cc.body, hair: cc.hair, hairColor: cc.hairColor, skin: cc.skin });
     createPlayerRig();
-    import('./castle.js').then(async (m) => {
-      m.setZone('dorm');
-      const zn = m.zones.get('dorm');
-      // 站在休息室西侧空地(避开中央圆桌),身后是壁炉光
-      P.pos.set(zn.offset.x - 7, 0, zn.offset.z + 10);
-      P.rig.group.position.copy(P.pos);
-      P.rig.group.rotation.y = 0.15; // 面向镜头(+z 侧)
-      P.rig.play('idle');
-      // 预览补光:让五官发色看得清
-      const THREE = await import('three');
-      const key = new THREE.PointLight(0xffe8cc, 26, 9, 2);
-      key.position.set(1.2, 2.2, 2.4);
-      const fill = new THREE.PointLight(0xcad8ff, 10, 8, 2);
-      fill.position.set(-1.6, 1.6, 1.8);
-      const rim = new THREE.PointLight(0x8fb8ff, 9, 7, 2);
-      rim.position.set(0.4, 2.0, -1.6);
-      P.rig.group.add(key, fill, rim);
-      window.__ccCam = true;
-      window.__ccWaveT = performance.now() + 1200;
-    });
-  }, 60);
+    // 全同步:立刻定位/朝向/补光,点选即见
+    setZone('dorm');
+    const zn = zones.get('dorm');
+    P.pos.set(zn.offset.x - 7, 0, zn.offset.z + 10);
+    P.rig.group.position.copy(P.pos);
+    P.rig.group.rotation.y = 0.15;
+    P.rig.play('idle');
+    const key = new THREE.PointLight(0xffe8cc, 15, 9, 2);
+    key.position.set(1.2, 2.2, 2.4);
+    const fill = new THREE.PointLight(0xcad8ff, 10, 8, 2);
+    fill.position.set(-1.6, 1.6, 1.8);
+    const rim = new THREE.PointLight(0x8fb8ff, 9, 7, 2);
+    rim.position.set(0.4, 2.0, -1.6);
+    P.rig.group.add(key, fill, rim);
+    window.__ccCam = true;
+    window.__ccWaveT = performance.now() + 1500;
+  }, 25);
 }
 function confirmCreate() {
   const name = $('ccName').value.trim() || '新来的学生';

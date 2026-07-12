@@ -254,7 +254,7 @@ export function floatingBooks(zone, { x0, x1, y0, y1, z0, z1, n = 14 }) {
 }
 
 // ============ 魔法天花板(大厅) ============
-export function enchantedCeiling(zone, x, y, z, w, d) {
+export function enchantedCeiling(zone, x, y, z, w, d, { vault = false, rise = 8 } = {}) {
   const mat = new THREE.ShaderMaterial({
     side: THREE.DoubleSide, depthWrite: false, transparent: true,
     uniforms: { uTime: { value: 0 }, uPhase: { value: 0 }, uNoise: { value: T.smoke() }, uRain: { value: 0 } },
@@ -283,9 +283,20 @@ export function enchantedCeiling(zone, x, y, z, w, d) {
         gl_FragColor = vec4(col, 0.96);
       }`,
   });
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat);
-  m.rotation.x = Math.PI / 2;
-  m.position.set(x, y, z);
+  let m;
+  if (vault) {
+    // 椭圆筒拱:沿 z 轴延伸,拱面朝下可见
+    const r = w / 2;
+    const geo = new THREE.CylinderGeometry(r, r, d, 30, 1, true, Math.PI / 2, Math.PI);
+    geo.rotateX(-Math.PI / 2);
+    geo.scale(1, rise / r, 1);
+    m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+  } else {
+    m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat);
+    m.rotation.x = Math.PI / 2;
+    m.position.set(x, y, z);
+  }
   zone.group.add(m);
   zone._ceilingMat = mat;
   zone.onUpdate(() => {

@@ -104,8 +104,52 @@ export function buildHall() {
       FXm.lightShaft(z, 16, 3.4, i * TILE + 2, { h: 8, r: 2.2, tilt: 0.5, opacity: 0.1 });
     }
   }
-  // 魔法天花板
-  FXm.enchantedCeiling(z, 0, 11.8, 0, 41, 65);
+  // 魔法穹顶:椭圆筒拱天空 + 哥特石肋 + 山墙 + 玫瑰花窗
+  FXm.enchantedCeiling(z, 0, 12, 0, 41.4, 64.6, { vault: true, rise: 7.6 });
+  {
+    const ribMat = new THREE.MeshStandardMaterial({ map: T.stone(1), roughness: 0.95 });
+    // 拱肋(沿跨度的半椭圆) × 7
+    for (let k = -3; k <= 3; k++) {
+      const pts = [];
+      for (let i = 0; i <= 20; i++) {
+        const a = Math.PI * (i / 20);
+        pts.push(new THREE.Vector3(-Math.cos(a) * 20.6, 12 + Math.sin(a) * 7.4, k * 9));
+      }
+      const rib = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.3, 6), ribMat);
+      z.group.add(rib);
+    }
+    // 脊梁
+    const spine = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 64), ribMat);
+    spine.position.set(0, 19.5, 0);
+    z.group.add(spine);
+    // 两端山墙(半椭圆封口)
+    const gable = new THREE.Shape();
+    gable.moveTo(-20.7, 0);
+    for (let i = 0; i <= 24; i++) {
+      const a = Math.PI * (i / 24);
+      gable.lineTo(-Math.cos(a) * 20.7, Math.sin(a) * 7.8);
+    }
+    gable.lineTo(-20.7, 0);
+    const northCap = new THREE.Mesh(new THREE.ShapeGeometry(gable), ribMat);
+    northCap.position.set(0, 11.95, -31.9);
+    z.group.add(northCap);
+    const southCap = northCap.clone();
+    southCap.position.z = 31.9;
+    southCap.rotation.y = Math.PI;
+    z.group.add(southCap);
+    // 北山墙玫瑰花窗(主席台上方)
+    const roseTex = T.stained(12);
+    const rose = new THREE.Mesh(new THREE.CircleGeometry(3.1, 24), new THREE.MeshStandardMaterial({ map: roseTex, emissive: 0xffffff, emissiveMap: roseTex, emissiveIntensity: 0.85, side: THREE.DoubleSide }));
+    rose.position.set(0, 15.6, -31.7);
+    z.group.add(rose);
+    const roseFrame = new THREE.Mesh(new THREE.TorusGeometry(3.15, 0.22, 8, 26), ribMat);
+    roseFrame.position.copy(rose.position);
+    z.group.add(roseFrame);
+    const roseGlow = new THREE.PointLight(0xb8a0e8, 20, 26, 2);
+    roseGlow.position.set(0, 14.5, -28);
+    z.group.add(roseGlow);
+    z.onUpdate(() => { rose.material.emissiveIntensity = FXm.phase01() > 0.6 ? 0.35 : 0.85; });
+  }
   // 悬浮蜡烛
   FXm.floatingCandles(z, 70, { x0: -16, x1: 16, z0: -26, z1: 26, y0: 6.2, y1: 9.5 });
   // 大厅主暖光(烛海光晕)

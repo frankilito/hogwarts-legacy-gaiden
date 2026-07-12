@@ -65,22 +65,23 @@ function grayMap(tex) {
 function hairGeos() {
   if (_hairGeos) return _hairGeos;
   const g = {};
-  // 短发:半球壳
-  g.short = new THREE.SphereGeometry(0.34, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55);
-  g.short.scale(1, 0.9, 1.05);
+  // 短发:半球壳(加深包裹)
+  g.short = new THREE.SphereGeometry(0.34, 14, 9, 0, Math.PI * 2, 0, Math.PI * 0.64);
+  g.short.scale(1, 0.92, 1.05);
   // 马尾:半球 + 后垂锥
-  { const dome = new THREE.SphereGeometry(0.34, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5); dome.scale(1, 0.85, 1.03);
-    const tail = new THREE.ConeGeometry(0.13, 0.62, 8); tail.rotateX(Math.PI * 0.92); tail.translate(0, -0.12, -0.42);
+  { const dome = new THREE.SphereGeometry(0.34, 14, 9, 0, Math.PI * 2, 0, Math.PI * 0.6); dome.scale(1, 0.9, 1.03);
+    const tail = new THREE.ConeGeometry(0.13, 0.62, 8); tail.rotateX(Math.PI * 0.92); tail.translate(0, -0.16, -0.44);
     g.ponytail = mergeGeos([dome, tail]); }
   // 双辫
-  { const dome = new THREE.SphereGeometry(0.34, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.52); dome.scale(1, 0.88, 1.02);
-    const l = new THREE.CapsuleGeometry(0.09, 0.4, 3, 8); l.rotateZ(0.5); l.translate(-0.34, -0.28, -0.05);
-    const r = new THREE.CapsuleGeometry(0.09, 0.4, 3, 8); r.rotateZ(-0.5); r.translate(0.34, -0.28, -0.05);
+  { const dome = new THREE.SphereGeometry(0.34, 14, 9, 0, Math.PI * 2, 0, Math.PI * 0.6); dome.scale(1, 0.9, 1.02);
+    const l = new THREE.CapsuleGeometry(0.09, 0.4, 3, 8); l.rotateZ(0.5); l.translate(-0.35, -0.3, -0.05);
+    const r = new THREE.CapsuleGeometry(0.09, 0.4, 3, 8); r.rotateZ(-0.5); r.translate(0.35, -0.3, -0.05);
     g.twin = mergeGeos([dome, l, r]); }
   // 长发
-  { const dome = new THREE.SphereGeometry(0.35, 12, 9, 0, Math.PI * 2, 0, Math.PI * 0.62); dome.scale(1, 1, 1.06);
+  { const dome = new THREE.SphereGeometry(0.35, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.66);
+    dome.scale(1, 0.98, 1.06);
     const back = new THREE.CylinderGeometry(0.3, 0.22, 0.55, 10, 1, true, Math.PI * 0.7, Math.PI * 1.6);
-    back.translate(0, -0.3, -0.02);
+    back.translate(0, -0.34, -0.02);
     g.long = mergeGeos([dome, back]); }
   _hairGeos = g;
   return g;
@@ -142,7 +143,7 @@ export class Rig {
           if (gm) c.map = gm;
           c.color.copy(col);
         } else if (col) {
-          c.color.copy(col).lerp(new THREE.Color(1, 1, 1), 0.45);
+          c.color.copy(col).lerp(new THREE.Color(1, 1, 1), 0.22);
         }
         if (opts.ghost) { c.transparent = true; c.opacity = 0.5; c.emissive = new THREE.Color(0x6a9ac8); c.emissiveIntensity = 0.55; c.depthWrite = false; }
         if (c.map) c.map.colorSpace = THREE.SRGBColorSpace;
@@ -206,12 +207,14 @@ export class Rig {
     const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.05 });
     const m = new THREE.Mesh(geo, mat);
     m.castShadow = true;
-    // head 骨骼空间:KayKit 头骨约在颈部,头顶向上 ~0.5 骨骼空间
+    // head 骨骼空间:发壳要足够大,罩住贴图上画的头发
     const headWorldScale = new THREE.Vector3();
     this.headBone.getWorldScale(headWorldScale);
     const invS = 1 / (headWorldScale.y || 1) * this.model.scale.y;
-    m.scale.setScalar(invS * 1.05);
-    m.position.set(0, 0.34 * invS, 0.02 * invS);
+    // 按 KayKit 大头身实测:头宽~0.64,发壳需半径~0.37 包住头皮
+    m.scale.setScalar(invS * 1.8);
+    m.position.set(0, 0.5 * invS, -0.09 * invS);
+    m.rotation.x = -0.24; // 前沿上抬,露出脸
     this.hairMesh = m;
     this.headBone.add(m);
   }

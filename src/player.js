@@ -63,6 +63,7 @@ export function snapCamera() {
     const pt = head.clone().lerp(target, t);
     if (pointBlocked(pt)) { free = head.clone().lerp(target, Math.max(0.12, t - 0.12)); break; }
   }
+  free.y = Math.max(free.y, floorAt(free.x, free.z) + 0.32);
   E.camera.position.copy(free);
   E.camera.lookAt(head);
 }
@@ -118,7 +119,7 @@ export function updatePlayer(dt) {
   // 相机输入
   if (Input.enabled && !P.moveLocked) {
     P.camYaw -= Input.mouseDX * 0.0026;
-    P.camPitch = THREE.MathUtils.clamp(P.camPitch + Input.mouseDY * 0.002, -0.5, 1.15);
+    P.camPitch = THREE.MathUtils.clamp(P.camPitch + Input.mouseDY * 0.002, -0.32, 1.15);
     P.camDist = THREE.MathUtils.clamp(P.camDist + Input.wheel * 0.55, 2.4, 9);
   }
 
@@ -190,6 +191,8 @@ export function updatePlayer(dt) {
     const pt = head.clone().lerp(camTarget, t);
     if (pointBlocked(pt)) { free = head.clone().lerp(camTarget, Math.max(0.15, t - 0.14)); break; }
   }
+  // 地面夹持:镜头永远不潜入地板
+  free.y = Math.max(free.y, floorAt(free.x, free.z) + 0.32);
   E.camera.position.lerp(free, Math.min(1, dt * 9));
   const look = head.clone();
   look.y += 0.1;

@@ -245,7 +245,7 @@ export class Rig {
   addLabel(text, color) {
     const c = document.createElement('canvas'); c.width = 256; c.height = 64;
     const g = c.getContext('2d');
-    g.font = '30px XiaoWei, Songti SC, serif';
+    g.font = '30px MagicSerif, Songti SC, serif';
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.shadowColor = 'rgba(0,0,0,.9)'; g.shadowBlur = 6;
     g.fillStyle = color; g.fillText(text, 128, 34);

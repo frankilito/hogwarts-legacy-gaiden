@@ -61,21 +61,22 @@ function loadOneRetry(loader, url, triesPer = 2) {
 }
 
 export function loadFonts() {
-  const loadFace = async (name, rel) => {
+  const loadFace = async (name, rel, desc) => {
     for (const u of urlCandidates(rel)) {
       try {
-        const f = await new FontFace(name, `url('${u}')`).load();
+        const f = await new FontFace(name, `url('${u}')`, desc).load();
         document.fonts.add(f);
         return;
       } catch { /* 下一个镜像 */ }
     }
   };
   const p = Promise.all([
-    loadFace('MaShan', 'assets/fonts/MaShanZheng.ttf'),
+    loadFace('MagicSerif', 'assets/fonts/MagicSerif-Regular.woff2', { weight: '400' }),
+    loadFace('MagicSerif', 'assets/fonts/MagicSerif-Bold.woff2', { weight: '700' }),
+    loadFace('MaShan', 'assets/fonts/MaShan-sub.woff2'),
     loadFace('Cinzel', 'assets/fonts/Cinzel.ttf'),
-    loadFace('XiaoWei', 'assets/fonts/ZCOOLXiaoWei.ttf'),
   ]).catch((e) => console.warn('font load fail', e));
-  // 最多等 2.5 秒,慢网不阻塞进游戏(字体就绪后自动换上)
+  // 子集字体极小,基本瞬时;仍设 2.5s 上限不阻塞
   return Promise.race([p, new Promise((r) => setTimeout(r, 2500))]);
 }
 

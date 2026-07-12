@@ -280,9 +280,9 @@ export function buildPotions() {
   const bc = document.createElement('canvas'); bc.width = 512; bc.height = 256;
   const bg2 = bc.getContext('2d');
   bg2.fillStyle = '#16241c'; bg2.fillRect(0, 0, 512, 256);
-  bg2.font = '30px XiaoWei, Songti SC, serif'; bg2.fillStyle = '#cfe0cf';
+  bg2.font = '30px MagicSerif, Songti SC, serif'; bg2.fillStyle = '#cfe0cf';
   bg2.fillText('今日配方 · 愈伤药剂', 24, 48);
-  bg2.font = '22px XiaoWei, Songti SC, serif'; bg2.fillStyle = '#a8c0a8';
+  bg2.font = '22px MagicSerif, Songti SC, serif'; bg2.fillStyle = '#a8c0a8';
   bg2.fillText('① 月光花瓣 两片', 40, 96);
   bg2.fillText('② 扭曲树根 一段', 40, 132);
   bg2.fillText('③ 文火 · 顺时针搅拌三圈', 40, 168);
@@ -372,7 +372,7 @@ export function buildDorm() {
   ng.fillStyle = '#7a5a34'; ng.fillRect(0, 0, 256, 192);
   ng.fillStyle = '#d8c49a'; ng.fillRect(14, 14, 100, 70); ng.fillRect(130, 30, 100, 60);
   ng.fillRect(30, 100, 110, 70);
-  ng.fillStyle = '#4a3620'; ng.font = '15px XiaoWei, serif';
+  ng.fillStyle = '#4a3620'; ng.font = '15px MagicSerif, serif';
   ng.fillText('决斗社招新!', 22, 40); ng.fillText('黄昏·庭院', 22, 60);
   ng.fillText('失物招领', 140, 55); ng.fillText('宿舍装饰大赛', 38, 130); ng.fillText('欢迎参观交流', 38, 150);
   const noteT = new THREE.CanvasTexture(noteC); noteT.colorSpace = THREE.SRGBColorSpace;

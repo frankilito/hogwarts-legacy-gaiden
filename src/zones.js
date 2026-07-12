@@ -148,6 +148,12 @@ export function buildHall() {
     const roseGlow = new THREE.PointLight(0xb8a0e8, 20, 26, 2);
     roseGlow.position.set(0, 14.5, -28);
     z.group.add(roseGlow);
+    // 穹顶上照微光:让石肋与山墙有石质感而非剪影
+    for (const lz of [-16, 16]) {
+      const up = new THREE.PointLight(0xffd9a8, 9, 24, 2);
+      up.position.set(0, 13.5, lz);
+      z.group.add(up);
+    }
     z.onUpdate(() => { rose.material.emissiveIntensity = FXm.phase01() > 0.6 ? 0.35 : 0.85; });
   }
   // 悬浮蜡烛

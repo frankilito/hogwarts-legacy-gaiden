@@ -285,9 +285,9 @@ export function enchantedCeiling(zone, x, y, z, w, d, { vault = false, rise = 8 
   });
   let m;
   if (vault) {
-    // 椭圆筒拱:沿 z 轴延伸,拱面朝下可见
+    // 椭圆筒拱:沿 z 轴延伸,拱顶朝上(θ 从 -π/2 起,弧凸向 +z,rotateX 后即 +y)
     const r = w / 2;
-    const geo = new THREE.CylinderGeometry(r, r, d, 30, 1, true, Math.PI / 2, Math.PI);
+    const geo = new THREE.CylinderGeometry(r, r, d, 30, 1, true, -Math.PI / 2, Math.PI);
     geo.rotateX(-Math.PI / 2);
     geo.scale(1, rise / r, 1);
     m = new THREE.Mesh(geo, mat);

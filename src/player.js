@@ -119,7 +119,7 @@ export function updatePlayer(dt) {
   // 相机输入
   if (Input.enabled && !P.moveLocked) {
     P.camYaw -= Input.mouseDX * 0.0026;
-    P.camPitch = THREE.MathUtils.clamp(P.camPitch + Input.mouseDY * 0.002, -0.32, 1.15);
+    P.camPitch = THREE.MathUtils.clamp(P.camPitch + Input.mouseDY * 0.002, -0.55, 1.15);
     P.camDist = THREE.MathUtils.clamp(P.camDist + Input.wheel * 0.55, 2.4, 9);
   }
 

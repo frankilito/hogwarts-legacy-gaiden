@@ -166,6 +166,8 @@ export function endDialogue() {
   E.camera.userData._look = null;
   $('dialogue').classList.add('hidden');
   document.body.classList.remove('letterbox');
+  // 相机立刻回到玩家背后,避免"按键反了"的错觉
+  import('./player.js').then((m) => m.snapCamera());
   onEnd?.();
 }
 

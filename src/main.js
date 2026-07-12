@@ -37,6 +37,8 @@ async function boot() {
   buildLibrary(); buildGreenhouse(); buildAstro(); buildPotions(); buildDorm();
   await new Promise((r) => setTimeout(r, 10));
   buildDungeon(); buildForest();
+  const { decorateAll } = await import('./decorate.js');
+  decorateAll();
   initBursts();
   $('loadfill').style.width = '100%';
   clearInterval(tipTimer);

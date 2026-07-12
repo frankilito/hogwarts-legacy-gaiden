@@ -87,13 +87,38 @@ export class Zone {
 }
 
 // ---------- 道具放置 ----------
-export function put(zone, name, x, y, z, ry = 0, s = 1) {
+// 家具自动碰撞表:半宽x/半深z/高(按 ry 自动换轴)
+const PROP_COLLIDERS = {
+  table_long: [1.05, 2.05, 1.1], table_long_tablecloth: [1.05, 2.05, 1.1], table_long_tablecloth_decorated_A: [1.05, 2.05, 1.1],
+  table_long_decorated_A: [1.05, 2.05, 1.1], table_long_decorated_C: [1.05, 2.05, 1.1], table_long_tablecloth_decorated_C: [1.05, 2.05, 1.1],
+  table_medium: [1.15, 0.75, 1.05], table_medium_tablecloth: [1.15, 0.75, 1.05], table_medium_decorated_A: [1.15, 0.75, 1.05], table_medium_tablecloth_decorated_B: [1.15, 0.75, 1.05],
+  table_small: [0.62, 0.62, 1.0], table_small_decorated_A: [0.62, 0.62, 1.0], table_small_decorated_B: [0.62, 0.62, 1.0],
+  chair: [0.36, 0.36, 1.1], stool: [0.3, 0.3, 0.6],
+  shelf_large: [1.02, 0.32, 0.5], shelf_small: [0.52, 0.3, 0.4], shelves: [1.0, 0.5, 2.0], shelf_small_candles: [0.52, 0.3, 0.4],
+  bed_decorated: [1.35, 1.58, 1.4], bed_frame: [1.15, 1.5, 0.9], bed_floor: [1.0, 1.4, 0.5],
+  trunk_large_A: [0.85, 0.55, 0.9], trunk_medium_A: [0.68, 0.45, 0.75], trunk_small_A: [0.5, 0.36, 0.6],
+  box_small: [0.52, 0.52, 0.9], box_large: [0.85, 0.85, 1.4], box_small_decorated: [0.52, 0.52, 0.9], box_stacked: [0.9, 0.9, 1.8], crates_stacked: [0.9, 0.9, 1.6],
+  barrel_large: [0.58, 0.58, 1.3], barrel_small: [0.42, 0.42, 0.9], barrel_large_decorated: [0.58, 0.58, 1.3], barrel_small_stack: [0.85, 0.85, 1.5],
+  keg: [0.5, 0.5, 0.9], keg_decorated: [0.5, 0.5, 0.9],
+  column: [0.36, 0.36, 1.4], pillar: [0.76, 0.76, 4], pillar_decorated: [0.76, 0.76, 4],
+  rubble_large: [0.8, 0.8, 0.7],
+};
+function autoCollide(zone, n, x, z, ry = 0) {
+  const c = PROP_COLLIDERS[n];
+  if (!c) return;
+  let [hx, hz, h] = c;
+  if (Math.abs(Math.sin(ry || 0)) > 0.6) { const t = hx; hx = hz; hz = t; }
+  zone.addCollider(x - hx, z - hz, x + hx, z + hz, h);
+}
+
+export function put(zone, name, x, y, z, ry = 0, s = 1, opts = {}) {
   const src = A.dungeon[name] || A.props[name];
   if (!src) { console.warn('缺道具', name); return null; }
   const m = src.clone(true);
   m.position.set(x, y, z); m.rotation.y = ry;
   if (s !== 1) m.scale.setScalar(s);
   zone.group.add(m);
+  if (!opts.noCollide && (y || 0) < 0.5 && s >= 0.8) autoCollide(zone, name, x, z, ry);
   return m;
 }
 // 放置并加碰撞(按包围盒)
@@ -106,12 +131,13 @@ export function putSolid(zone, name, x, y, z, ry = 0, s = 1, shrink = 0.1) {
 }
 
 // ---------- 实例化批量放置 ----------
-// placements: [{n:'wall', x,y,z, ry, s}]
+// placements: [{n:'wall', x,y,z, ry, s, noCollide}]
 export function instBatch(zone, placements) {
   const byName = new Map();
   for (const p of placements) {
     if (!byName.has(p.n)) byName.set(p.n, []);
     byName.get(p.n).push(p);
+    if (!p.noCollide && (p.y || 0) < 0.5 && (p.s || 1) >= 0.8) autoCollide(zone, p.n, p.x, p.z, p.ry);
   }
   for (const [name, list] of byName) {
     const src = A.dungeon[name];

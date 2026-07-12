@@ -28,6 +28,12 @@ const DUNGEON_LIST = [
   'bottle_A_green', 'bottle_A_brown', 'bottle_A_labeled_green', 'bottle_B_green', 'bottle_B_brown', 'bottle_C_green', 'bottle_C_brown',
   'plate', 'plate_food_A', 'plate_food_B', 'plate_stack', 'coin', 'coin_stack_small', 'coin_stack_medium', 'coin_stack_large',
   'key', 'keyring_hanging', 'sword_shield', 'sword_shield_gold', 'rubble_half', 'rubble_large',
+  // 场景丰富化追加
+  'banner_thin_red', 'banner_thin_green', 'banner_thin_blue', 'banner_thin_yellow', 'banner_thin_white',
+  'banner_triple_red', 'banner_triple_green', 'banner_triple_blue', 'banner_triple_yellow',
+  'table_long_decorated_A', 'table_long_decorated_C', 'table_medium_decorated_A', 'table_medium_tablecloth_decorated_B', 'table_small_decorated_B',
+  'barrel_large_decorated', 'barrel_small_stack', 'box_small_decorated', 'box_stacked', 'keg',
+  'bottle_A_labeled_brown', 'plate_small', 'torch', 'candle_thin', 'keyring', 'stairs_wood_decorated', 'floor_wood_small',
 ];
 
 // 资源镜像回退:github.io 不稳时逐文件切换 jsDelivr(国内网络友好)

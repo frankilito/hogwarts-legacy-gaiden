@@ -102,6 +102,14 @@ export function fadeTransition(mid, dur = 420) {
 
 const WALK = 2.3, RUN = 5.4, SNEAK = 1.4;
 const _fwd = new THREE.Vector3(), _rt = new THREE.Vector3(), _mv = new THREE.Vector3();
+const _camDir = new THREE.Vector3();
+
+// 以相机"实际画面朝向"为移动基准(相机过渡/运镜期间 WASD 也永远和屏幕一致)
+function screenYaw() {
+  E.camera.getWorldDirection(_camDir);
+  if (Math.abs(_camDir.x) + Math.abs(_camDir.z) < 0.001) return P.camYaw;
+  return Math.atan2(_camDir.x, _camDir.z);
+}
 
 export function updatePlayer(dt) {
   const rig = P.rig;
@@ -125,7 +133,8 @@ export function updatePlayer(dt) {
   // 翻滚
   if (canMove && P.state !== 'cast' && (pressed('Space') || pressed('V_dodge')) && P.dodgeCd <= 0) {
     P.state = 'dodge'; P.dodgeT = 0.42; P.iframe = 0.5; P.dodgeCd = 0.7;
-    const dir = hasMove ? Math.atan2(mv.x, mv.y) + P.camYaw + Math.PI : P.yaw;
+    const sy = screenYaw();
+    const dir = hasMove ? Math.atan2(mv.x, mv.y) + sy + Math.PI : P.yaw;
     P.dodgeDir = dir;
     const rel = hasMove ? 'F' : 'B';
     rig.play('dodge' + rel, { once: true, then: null, fade: 0.08 });
@@ -143,7 +152,7 @@ export function updatePlayer(dt) {
   } else if (canMove && hasMove) {
     P.sneaking = down('ShiftLeft') || down('ShiftRight');
     const spd = P.sneaking ? SNEAK : RUN;
-    const dir = Math.atan2(mv.x, mv.y) + P.camYaw + Math.PI;
+    const dir = Math.atan2(mv.x, mv.y) + screenYaw() + Math.PI;
     let dyaw = ((dir - P.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
     P.yaw += dyaw * Math.min(1, dt * 11);
     P.speed = THREE.MathUtils.lerp(P.speed, spd * Math.min(1, Math.hypot(mv.x, mv.y) * 1.4), Math.min(1, dt * 8));

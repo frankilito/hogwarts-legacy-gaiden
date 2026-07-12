@@ -300,7 +300,12 @@ export function buildCourtyard() {
   room(z, {
     w: 7, d: 7, wallH: 2,
     doors: [{ side: 1, i: -1 }, { side: 1, i: 0 }, { side: 3, i: -1 }, { side: 3, i: 0 }, { side: 0, i: 0 }],
-    floorPick: (i, j) => (Math.abs(i + 0.5) < 3.4 && Math.abs(j + 0.5) < 3.4 ? 'floor_dirt_small_weeds' : 'floor_tile_large'),
+    floorPick: (i, j) => {
+      if (Math.abs(i + 0.5) < 3.4 && Math.abs(j + 0.5) < 3.4) {
+        return ((i * 31 + j * 17 + 7) % 5 === 0) ? 'floor_dirt_small_weeds' : 'floor_dirt_large';
+      }
+      return 'floor_tile_large';
+    },
     wallPattern: (side, i, L) => L === 0 ? (i % 2 === 0 ? 'wall_arched' : 'wall_archedwindow_open') : 'wall_sloped',
   });
   FXm.skyDome(z, 130);

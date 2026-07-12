@@ -59,8 +59,9 @@ function startIntro() {
 }
 function showControlHints() {
   toast('🕹 WASD 移动 · 鼠标视角 · E 交互 · Tab 面板', true);
-  setTimeout(() => toast('⚔ 左键魔弹 · 1-4 咒语 · 右键护盾 · 空格翻滚 · Q 锁定'), 2600);
-  setTimeout(() => toast('🚪 大厅南侧的门通往楼梯厅——去认识一下这座城堡吧'), 5200);
+  setTimeout(() => toast('🗺 按 M 打开活点地图 · 跟着门上的金色箭头走不会迷路', true), 2600);
+  setTimeout(() => toast('⚔ 左键魔弹 · 1-4 咒语 · 右键护盾 · 空格翻滚 · Q 锁定'), 5400);
+  setTimeout(() => toast('🚪 大厅南侧的门通往楼梯厅——去认识一下这座城堡吧'), 8000);
 }
 
 // ---------------- 阶段变化 ----------------
@@ -412,9 +413,75 @@ export function updateGameplay(dt) {
     t2.cb?.(t2);
   }
 
-  // Tab 菜单
+  // Tab 菜单 / M 地图 / J 任务
   if (pressed('Tab') || pressed('V_menu')) window.__sys?.ui?.toggleMenu?.();
+  if (pressed('KeyM')) window.__sys?.ui?.toggleMenu?.('map');
+  if (pressed('KeyJ')) window.__sys?.ui?.toggleMenu?.('quests');
+  updateGuideArrow(dt);
   updateDecor(dt);
+}
+
+// ---------------- 任务指路箭头(悬浮在通往目标的门上方) ----------------
+const ZONE_GRAPH = {
+  hall: ['stair'], library: ['stair'], potions: ['stair'], dorm: ['stair'], astro: ['stair'], dungeon: ['stair'],
+  stair: ['hall', 'library', 'courtyard', 'dorm', 'potions', 'astro', 'dungeon'],
+  courtyard: ['stair', 'greenhouse', 'forest'],
+  greenhouse: ['courtyard'], forest: ['courtyard'],
+};
+function nextHop(from, to) {
+  if (from === to) return null;
+  const prev = { [from]: null };
+  const q = [from];
+  while (q.length) {
+    const c = q.shift();
+    for (const n of ZONE_GRAPH[c] || []) {
+      if (n in prev) continue;
+      prev[n] = c;
+      if (n === to) {
+        let cur = n;
+        while (prev[cur] !== from) cur = prev[cur];
+        return cur;
+      }
+      q.push(n);
+    }
+  }
+  return null;
+}
+let _arrow = null;
+function ensureArrow() {
+  if (_arrow) return _arrow;
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffd75a, emissive: 0xd8a530, emissiveIntensity: 2.2, roughness: 0.25 });
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.25, 8), mat);
+  cone.rotation.x = Math.PI; // 尖朝下
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.09, 8, 20), mat);
+  ring.rotation.x = Math.PI / 2; ring.position.y = 0.85;
+  const L = new THREE.PointLight(0xffd75a, 16, 10, 2);
+  L.position.y = 0.7;
+  g.add(cone, ring, L);
+  import('./engine.js').then((m) => m.E.scene.add(g));
+  _arrow = g;
+  return g;
+}
+function updateGuideArrow(dt) {
+  const tq = S.quests[S.tracked];
+  const step = tq && !tq.done ? QUESTS[S.tracked]?.steps[tq.step] : null;
+  const target = step?.zone;
+  if (!S.started || !target || !activeZone || window.__dialogOpen) { if (_arrow) _arrow.visible = false; return; }
+  let door = null;
+  if (target === S.zone) { if (_arrow) _arrow.visible = false; return; } // 已在目标区域
+  const hop = nextHop(S.zone, target);
+  if (!hop) { if (_arrow) _arrow.visible = false; return; }
+  door = activeZone.doors.find((d) => d.to === hop) || activeZone.interact.find((i) => i.isDoor && i.to === hop);
+  if (!door) { if (_arrow) _arrow.visible = false; return; }
+  const a = ensureArrow();
+  const w = activeZone.W(door.x, door.z);
+  const t = performance.now() / 1000;
+  a.position.set(w.x, (door.needY || 0) + 4.6 + Math.sin(t * 2.2) * 0.22, w.z);
+  a.rotation.y = t * 1.5;
+  const s = 1 + Math.sin(t * 3) * 0.08;
+  a.scale.setScalar(s);
+  a.visible = true;
 }
 
 // ---------------- NPC 对话(注入任务钩子) ----------------

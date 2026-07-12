@@ -5,6 +5,7 @@ import { QUESTS } from './story.js';
 import { Input } from './input.js';
 import { teleport, fadeTransition, P } from './player.js';
 import { toast } from './ui.js';
+import { npcs } from './npc.js';
 
 const $ = (id) => document.getElementById(id);
 const TABS = [['status', '状态'], ['bag', '背包'], ['skills', '技能'], ['quests', '任务'], ['map', '地图'], ['sched', '日程']];
@@ -225,26 +226,71 @@ function wireQuests(body) {
 }
 
 const MAP_ROOMS = [
-  { id: 'astro', x: 40, y: 2, w: 20, h: 12, ic: '🔭' },
-  { id: 'library', x: 66, y: 22, w: 26, h: 16, ic: '📚' },
-  { id: 'hall', x: 34, y: 16, w: 30, h: 22, ic: '🏰' },
-  { id: 'stair', x: 36, y: 42, w: 26, h: 18, ic: '🌀' },
-  { id: 'potions', x: 66, y: 44, w: 22, h: 14, ic: '⚗' },
-  { id: 'courtyard', x: 6, y: 42, w: 26, h: 18, ic: '⛲' },
-  { id: 'greenhouse', x: 6, y: 20, w: 22, h: 16, ic: '🌿' },
-  { id: 'dorm', x: 40, y: 66, w: 24, h: 16, ic: '🛏' },
-  { id: 'dungeon', x: 68, y: 66, w: 24, h: 16, ic: '🕳', cond: () => !!S.flags.dungeonOpen },
-  { id: 'forest', x: 6, y: 66, w: 26, h: 16, ic: '🌲' },
+  { id: 'astro', x: 40, y: 2, w: 20, h: 13, ic: '🔭', tip: '经楼梯厅连桥上塔 · 夜晚观星/钥匙星座' },
+  { id: 'hall', x: 30, y: 20, w: 28, h: 24, ic: '🏰', tip: '开学宴会 · 黑魔法防御课 · 教师们常在此' },
+  { id: 'library', x: 66, y: 22, w: 26, h: 17, ic: '📚', tip: '薇拉在这读书 · 深夜禁书区有秘密' },
+  { id: 'greenhouse', x: 2, y: 44, w: 20, h: 16, ic: '🌿', tip: '草药课 · 夜晚月光花开 · 波比常来' },
+  { id: 'courtyard', x: 25, y: 49, w: 18, h: 17, ic: '⛲', tip: '黄昏决斗社 · 通往温室与禁林' },
+  { id: 'stair', x: 46, y: 49, w: 24, h: 18, ic: '🌀', tip: '城堡中枢 · 提基小摊 · 双旋梯上天文塔' },
+  { id: 'potions', x: 74, y: 44, w: 22, h: 15, ic: '⚗', tip: '魔药课 · 格雷的坩埚(调制药剂)' },
+  { id: 'forest', x: 2, y: 66, w: 20, h: 17, ic: '🌲', tip: '黄昏后开放 · 采集材料 · 小心骸骨', cond: () => S.phase >= 3 || !!S.flags.forestFree },
+  { id: 'dorm', x: 40, y: 74, w: 21, h: 17, ic: '🛏', tip: '睡觉过夜 · 布置房间 · 猫头鹰邮购' },
+  { id: 'dungeon', x: 70, y: 74, w: 22, h: 17, ic: '🕳', tip: '主线解锁的地下迷宫 · 机关与守卫', cond: () => !!S.flags.dungeonOpen },
+];
+const MAP_LINKS = [
+  ['astro', 'stair'], ['hall', 'stair'], ['library', 'stair'], ['stair', 'potions'],
+  ['stair', 'dorm'], ['stair', 'dungeon'], ['stair', 'courtyard'], ['courtyard', 'greenhouse'], ['courtyard', 'forest'],
 ];
 const ZONE_NAMES = { hall: '城堡大厅', stair: '楼梯厅', library: '图书馆', greenhouse: '温室', astro: '天文塔', potions: '魔药教室', dorm: '宿舍', dungeon: '地下密室', forest: '禁林', courtyard: '庭院' };
+
 function renderMap() {
-  return `<div style="position:relative;height:460px;max-width:760px;margin:0 auto;background:radial-gradient(circle at 50% 40%, rgba(40,32,20,.5), rgba(10,8,5,.6));border:1px solid rgba(201,168,106,.25);border-radius:10px">
-    ${MAP_ROOMS.map((r) => {
-      const locked = r.cond && !r.cond();
-      return `<div class="map-room ${S.zone === r.id ? 'cur' : ''}" data-z="${r.id}" style="left:${r.x}%;top:${r.y}%;width:${r.w}%;height:${r.h}%;${locked ? 'opacity:.35' : ''}">
-        <span class="ic">${r.ic}</span>${ZONE_NAMES[r.id]}${locked ? '<span style="font-size:10px">未发现</span>' : ''}</div>`;
-    }).join('')}
-    <div style="position:absolute;bottom:8px;left:12px;color:#847758;font-size:12.5px">点击房间快速移动(城堡的楼梯自己会动,不用客气)</div>
+  // 实时信息:当前课程地点 / 追踪任务目标 / NPC 分布
+  const [am, pm] = WEEK_SCHEDULE[S.day % 7];
+  const curClass = S.phase === 1 ? am : S.phase === 2 ? pm : null;
+  const classZone = curClass ? CLASSES[curClass].zone : null;
+  const tq = S.quests[S.tracked];
+  const targetZone = tq && !tq.done ? (QUESTS[S.tracked]?.steps[tq.step]?.zone || null) : null;
+  // NPC 分布
+  let npcByZone = {};
+  try {
+    for (const [id, n] of npcs) {
+      if (!n.zone) continue;
+      (npcByZone[n.zone] = npcByZone[n.zone] || []).push(n.def);
+    }
+  } catch { /* npc 模块未就绪 */ }
+
+  const roomHtml = MAP_ROOMS.map((r) => {
+    const locked = r.cond && !r.cond();
+    const isCur = S.zone === r.id;
+    const isTarget = targetZone === r.id;
+    const isClass = classZone === r.id;
+    const residents = (npcByZone[r.id] || []).slice(0, 7).map((d) => `<span title="${d.name}">${d.icon}</span>`).join('');
+    return `<div class="map-room ${isCur ? 'cur' : ''} ${isTarget ? 'target' : ''}" data-z="${r.id}" title="${r.tip}"
+      style="left:${r.x}%;top:${r.y}%;width:${r.w}%;height:${r.h}%;${locked ? 'opacity:.4;filter:grayscale(.6)' : ''}">
+      <div style="font-size:13px;letter-spacing:1px">${r.ic} ${ZONE_NAMES[r.id]}
+        ${isCur ? '<span class="map-me">●你</span>' : ''}${isTarget ? ' <span style="color:#ffd75a">★</span>' : ''}${isClass ? ' <span title="正在上课">🔔</span>' : ''}${locked ? ' 🔒' : ''}</div>
+      <div class="map-npcs">${residents}</div>
+    </div>`;
+  }).join('');
+  // 连线
+  const C = (id) => { const r = MAP_ROOMS.find((x) => x.id === id); return [r.x + r.w / 2, r.y + r.h / 2]; };
+  const lines = MAP_LINKS.map(([a, b]) => {
+    const [x1, y1] = C(a), [x2, y2] = C(b);
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(201,168,106,.4)" stroke-width="0.7" stroke-dasharray="2 1.4"/>`;
+  }).join('');
+  return `<div style="position:relative;height:470px;max-width:820px;margin:0 auto;border:1px solid rgba(201,168,106,.35);border-radius:12px;overflow:hidden;
+      background:radial-gradient(ellipse at 50% 30%, rgba(74,58,32,.55), rgba(26,20,12,.9)),repeating-linear-gradient(45deg, rgba(201,168,106,.03) 0 8px, transparent 8px 16px)">
+    <div style="position:absolute;top:6px;left:0;right:0;text-align:center;color:#c9a86a;font-size:15px;letter-spacing:6px;font-family:'MaShan',serif">— 活 点 地 图 —</div>
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">${lines}</svg>
+    ${roomHtml}
+    <div style="position:absolute;bottom:6px;left:12px;right:12px;display:flex;justify-content:space-between;color:#847758;font-size:12px">
+      <span>● 你的位置 · ★ 任务目标 · 🔔 正在上课 · 小图标=此刻在场的人</span>
+      <span>点击房间即可快速移动</span>
+    </div>
+  </div>
+  <div style="max-width:820px;margin:8px auto 0;color:#9c8f74;font-size:12.5px;line-height:1.7">
+    ${targetZone ? `📜 <b style="color:#ffd75a">${QUESTS[S.tracked].name}</b>:前往 <b>${ZONE_NAMES[targetZone]}</b> —— 世界里跟着门上的<b style="color:#ffd75a">金色箭头</b>走就不会迷路` : '当前没有带地点的追踪任务。在「任务」页点击任务可切换追踪。'}
+    ${curClass ? ` · 🔔 现在是<b>${CLASSES[curClass].name}</b>时间(${ZONE_NAMES[classZone]})` : ''}
   </div>`;
 }
 function wireMap(body) {

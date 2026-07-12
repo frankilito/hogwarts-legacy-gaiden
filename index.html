@@ -169,9 +169,13 @@ button{font-family:inherit;color:inherit;background:none;border:none;cursor:poin
 @keyframes pulse{0%,100%{box-shadow:0 0 6px rgba(143,184,255,.2)}50%{box-shadow:0 0 20px rgba(143,184,255,.65)}}
 
 /* 地图/日程 */
-.map-room{position:absolute;border:1px solid rgba(201,168,106,.45);border-radius:6px;background:rgba(201,168,106,.08);display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:14px;letter-spacing:2px;color:var(--ink);cursor:pointer;transition:all .15s;text-align:center;line-height:1.4}
-.map-room:hover{background:rgba(201,168,106,.22);border-color:var(--line-hi);box-shadow:0 0 14px rgba(201,168,106,.3)}
-.map-room.cur{border-color:#8fd0ff;background:rgba(80,140,220,.18)}
+.map-room{position:absolute;border:1px solid rgba(201,168,106,.45);border-radius:6px;background:rgba(30,24,14,.55);display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:14px;letter-spacing:1px;color:var(--ink);cursor:pointer;transition:all .15s;text-align:center;line-height:1.4;padding:2px}
+.map-room:hover{background:rgba(201,168,106,.22);border-color:var(--line-hi);box-shadow:0 0 14px rgba(201,168,106,.3);z-index:2}
+.map-room.cur{border-color:#8fd0ff;background:rgba(80,140,220,.2);box-shadow:0 0 12px rgba(120,170,255,.35)}
+.map-room.target{border-color:#ffd75a;animation:mapTarget 1.6s infinite}
+@keyframes mapTarget{0%,100%{box-shadow:0 0 6px rgba(255,215,90,.25)}50%{box-shadow:0 0 20px rgba(255,215,90,.75)}}
+.map-me{color:#ff8a6a;font-size:10.5px;margin-left:3px}
+.map-npcs{display:flex;gap:1px;font-size:12.5px;flex-wrap:wrap;justify-content:center;margin-top:2px;max-width:96%}
 .map-room .ic{font-size:20px}
 .sched-row{display:flex;gap:10px;padding:9px 12px;border-bottom:1px solid rgba(201,168,106,.14);font-size:15px;align-items:center}
 .sched-row .time{width:120px;color:var(--gold);letter-spacing:1px}
@@ -300,6 +304,7 @@ button{font-family:inherit;color:inherit;background:none;border:none;cursor:poin
     <div id="hudDate">九月一日 · 第1天</div>
     <div id="hudPhase">🌅 清晨</div>
     <div id="hudZone">城堡大厅</div>
+    <div id="hudKeys" style="font-size:11.5px;color:#7d7258;margin-top:3px;letter-spacing:1px">M 地图 · Tab 菜单 · J 任务</div>
     <canvas id="hudClock" width="108" height="108"></canvas>
   </div>
   <div id="hudObjective"></div>

@@ -30,27 +30,47 @@ const DUNGEON_LIST = [
   'key', 'keyring_hanging', 'sword_shield', 'sword_shield_gold', 'rubble_half', 'rubble_large',
 ];
 
+// 资源镜像回退:github.io 不稳时逐文件切换 jsDelivr(国内网络友好)
+const Q0 = new URLSearchParams(location.search);
+const MIRRORS = (location.hostname.endsWith('github.io') || Q0.has('mirror'))
+  ? ['https://cdn.jsdelivr.net/gh/frankilito/hogwarts-legacy-gaiden@main/']
+  : [];
+const urlCandidates = (rel) => [rel, ...MIRRORS.map((m) => m + rel)];
+
+// 带重试+镜像回退的 GLTF 加载(抗不稳定网络)
+function loadOneRetry(loader, url, triesPer = 2) {
+  const cands = urlCandidates(url);
+  return new Promise((res) => {
+    let ci = 0, n = 0;
+    const attempt = () => {
+      loader.load(cands[ci], (g) => res(g), undefined, () => {
+        n++;
+        if (n >= triesPer && ci < cands.length - 1) { ci++; n = 0; }
+        if (ci < cands.length) setTimeout(attempt, 500 + Math.random() * 500);
+        else { console.warn('模型加载失败(含镜像重试)', url); res(null); }
+      });
+    };
+    attempt();
+  });
+}
+
 export function loadFonts() {
+  const loadFace = async (name, rel) => {
+    for (const u of urlCandidates(rel)) {
+      try {
+        const f = await new FontFace(name, `url('${u}')`).load();
+        document.fonts.add(f);
+        return;
+      } catch { /* 下一个镜像 */ }
+    }
+  };
   const p = Promise.all([
-    new FontFace('MaShan', "url('assets/fonts/MaShanZheng.ttf')").load().then((f) => document.fonts.add(f)),
-    new FontFace('Cinzel', "url('assets/fonts/Cinzel.ttf')").load().then((f) => document.fonts.add(f)),
-    new FontFace('XiaoWei', "url('assets/fonts/ZCOOLXiaoWei.ttf')").load().then((f) => document.fonts.add(f)),
+    loadFace('MaShan', 'assets/fonts/MaShanZheng.ttf'),
+    loadFace('Cinzel', 'assets/fonts/Cinzel.ttf'),
+    loadFace('XiaoWei', 'assets/fonts/ZCOOLXiaoWei.ttf'),
   ]).catch((e) => console.warn('font load fail', e));
   // 最多等 2.5 秒,慢网不阻塞进游戏(字体就绪后自动换上)
   return Promise.race([p, new Promise((r) => setTimeout(r, 2500))]);
-}
-
-// 带重试的 GLTF 加载(抗不稳定网络)
-function loadOneRetry(loader, url, tries = 3) {
-  return new Promise((res) => {
-    const attempt = (n) => {
-      loader.load(url, (g) => res(g), undefined, () => {
-        if (n < tries) setTimeout(() => attempt(n + 1), 700 * n + Math.random() * 400);
-        else { console.warn('模型加载失败(已重试)', url); res(null); }
-      });
-    };
-    attempt(1);
-  });
 }
 
 export function loadModels(onProgress) {

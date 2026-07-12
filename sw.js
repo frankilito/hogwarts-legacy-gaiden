@@ -1,6 +1,7 @@
 // sw.js — 魔法缓存:资源缓存优先(断网/弱网也能进城堡),代码网络优先保持更新
-const VER = 'hg-cache-v1';
+const VER = 'hg-cache-v2';
 const ASSET_RE = /\.(glb|gltf|bin|png|jpg|webp|ttf|woff2?)$/i;
+const MIRROR_HOSTS = ['cdn.jsdelivr.net'];
 
 self.addEventListener('install', (e) => self.skipWaiting());
 self.addEventListener('activate', (e) => {
@@ -15,9 +16,10 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== location.origin) return;
+  const isMirror = MIRROR_HOSTS.includes(url.hostname);
+  if (url.origin !== location.origin && !isMirror) return;
 
-  const isAsset = url.pathname.includes('/assets/') || url.pathname.includes('/libs/') || ASSET_RE.test(url.pathname);
+  const isAsset = isMirror || url.pathname.includes('/assets/') || url.pathname.includes('/libs/') || ASSET_RE.test(url.pathname);
   if (isAsset) {
     // 缓存优先:大文件一旦到手永不再下
     e.respondWith((async () => {

@@ -7,6 +7,7 @@ import { zones, activeZone } from './castle.js';
 import { P } from './player.js';
 import { HAIR_COLORS } from './data.js';
 import { FX } from './fx.js';
+import { A } from './assets.js';
 
 export const npcs = new Map(); // id -> npc obj
 
@@ -51,18 +52,22 @@ export function initNPCs() {
   on('phase', () => relocateAll(false));
   on('gamestart', () => relocateAll(true));
   addEventListener('hg-zone', () => relocateAll(true));
+  addEventListener('hg-model', () => relocateAll(true)); // 后台角色就位后立即登场
   relocateAll(true);
 }
 
 function ensureRig(npc) {
   if (npc.rig) return npc.rig;
   const m = npc.def.model;
-  npc.rig = new Rig(m.base, {
-    tint: m.tint, skin: m.skin, hair: m.hair, hairColor: m.hairColor,
-    hat: m.hat, hand: m.hand === 'staff' ? 'staff' : m.hand === 'spellbook_open' ? null : m.hand,
-    ghost: m.ghost, scale: m.scale || (npc.def.role?.includes('二年级') ? 0.92 : 1),
-    label: npc.def.name, labelColor: npc.def.house ? undefined : '#cfe0f0',
-  });
+  if (!A.chars[m.base]) return null; // 模型还在后台流式加载
+  try {
+    npc.rig = new Rig(m.base, {
+      tint: m.tint, skin: m.skin, hair: m.hair, hairColor: m.hairColor,
+      hat: m.hat, hand: m.hand === 'staff' ? 'staff' : m.hand === 'spellbook_open' ? null : m.hand,
+      ghost: m.ghost, scale: m.scale || (npc.def.role?.includes('二年级') ? 0.92 : 1),
+      label: npc.def.name, labelColor: npc.def.house ? undefined : '#cfe0f0',
+    });
+  } catch { return null; }
   if (m.hand === 'spellbook_open') npc.rig.setHand('book');
   return npc.rig;
 }
@@ -73,8 +78,7 @@ export function relocateAll(instant = true) {
     // 同伴:跟随玩家所在区域
     if (S.companion === npc.id) {
       const zn = zones.get(S.zone);
-      if (zn) {
-        ensureRig(npc);
+      if (zn && ensureRig(npc)) {
         npc.rig.group.visible = true;
         if (npc.rig.group.parent !== zn.group) zn.group.add(npc.rig.group);
         if (npc.zone !== S.zone) {
@@ -93,7 +97,7 @@ export function relocateAll(instant = true) {
     }
     const zn = zones.get(t.zone);
     if (!zn) continue;
-    ensureRig(npc);
+    if (!ensureRig(npc)) { npc.zone = null; continue; } // 模型未就位,稍后再登场
     npc.rig.group.visible = true;
     if (npc.zone !== t.zone || instant) {
       // 直接换区域

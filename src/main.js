@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { initEngine, renderFrame, E } from './engine.js';
 import { initInput, endFrame, Input, pressed } from './input.js';
-import { loadFonts, loadModels } from './assets.js';
+import { loadFonts, loadModels, loadRestChars } from './assets.js';
 import { buildHall, buildStair, buildCourtyard } from './zones.js';
 import { buildLibrary, buildGreenhouse, buildAstro, buildPotions, buildDorm } from './zones2.js';
 import { buildDungeon, buildForest } from './zones3.js';
@@ -27,8 +27,9 @@ async function boot() {
   await loadFonts();
   await loadModels((p) => {
     $('loadfill').style.width = (p * 88).toFixed(1) + '%';
-    $('loadtext').textContent = `正在召集城堡精灵… ${(p * 100 | 0)}%`;
+    $('loadtext').textContent = `正在召集城堡精灵… ${(p * 100 | 0)}%(首次约 25MB,之后有魔法缓存)`;
   });
+  loadRestChars(); // 其余角色后台流式加载,不阻塞进场
   $('loadtext').textContent = '正在砌起高塔与回廊…';
   await new Promise((r) => setTimeout(r, 30));
   buildHall(); buildStair(); buildCourtyard();

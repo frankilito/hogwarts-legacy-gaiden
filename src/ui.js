@@ -9,6 +9,7 @@ const $ = (id) => document.getElementById(id);
 
 export function initUI() {
   on('toast', ({ text, big }) => toast(text, big));
+  addEventListener('hg-toast', (e) => toast(e.detail));
   on('hud', refreshHUD);
   on('zone', () => { $('hudZone').textContent = zoneName(); refreshHUD(); });
   on('phase', refreshHUD);

@@ -73,6 +73,16 @@ function onResize() {
 export function renderFrame(dt) {
   E._fpsAcc += dt; E._fpsN++;
   if (E._fpsAcc >= 1) { E.fps = Math.round(E._fpsN / E._fpsAcc); E._fpsAcc = 0; E._fpsN = 0; }
+  // 连续低帧自动降画质
+  if (E.fps > 0 && E.fps < 24 && E.quality !== 'low') {
+    E._lowT = (E._lowT || 0) + dt;
+    if (E._lowT > 6) {
+      E._lowT = -10; // 冷却
+      const next = E.quality === 'high' ? 'med' : 'low';
+      applyQuality(next);
+      dispatchEvent(new CustomEvent('hg-toast', { detail: `⚙ 检测到卡顿,已自动切换到${next === 'med' ? '均衡' : '流畅'}画质(设置里可改回)` }));
+    }
+  } else if (E.fps >= 30) E._lowT = Math.max(0, (E._lowT || 0) - dt);
   E.composer.render();
 }
 

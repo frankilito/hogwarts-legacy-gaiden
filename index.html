@@ -361,6 +361,10 @@ button{font-family:inherit;color:inherit;background:none;border:none;cursor:poin
   "three/addons/":"./libs/jsm/"
 }}
 </script>
+<script>
+// 魔法缓存:让 50MB 资源只下一次,弱网断点续传
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
 <script type="module" src="src/main.js"></script>
 </body>
 </html>

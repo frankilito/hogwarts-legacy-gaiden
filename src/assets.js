@@ -3,9 +3,11 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { tuneMaterial } from './engine.js';
 
-export const A = { chars: {}, dungeon: {}, props: {}, ready: false };
+export const A = { chars: {}, dungeon: {}, props: {}, ready: false, restReady: false };
 
-const CHAR_LIST = ['Mage', 'Knight', 'Rogue', 'Rogue_Hooded', 'Barbarian', 'Skeleton_Mage', 'Skeleton_Minion', 'Skeleton_Rogue', 'Skeleton_Warrior'];
+// 核心角色(阻塞加载:玩家可选体型) / 其余角色后台流式加载
+const CORE_CHARS = ['Mage', 'Rogue', 'Knight'];
+const BG_CHARS = ['Rogue_Hooded', 'Barbarian', 'Skeleton_Mage', 'Skeleton_Minion', 'Skeleton_Rogue', 'Skeleton_Warrior'];
 const PROP_LIST = ['wand', 'staff', 'spellbook_open', 'spellbook_closed', 'sword_1handed', 'shield_round', 'mug_full', 'Skeleton_Staff', 'Skeleton_Blade'];
 const DUNGEON_LIST = [
   'wall', 'wall_arched', 'wall_archedwindow_open', 'wall_archedwindow_gated', 'wall_window_open', 'wall_window_closed',
@@ -28,27 +30,55 @@ const DUNGEON_LIST = [
   'key', 'keyring_hanging', 'sword_shield', 'sword_shield_gold', 'rubble_half', 'rubble_large',
 ];
 
-export async function loadFonts() {
-  try { await Promise.all([
+export function loadFonts() {
+  const p = Promise.all([
     new FontFace('MaShan', "url('assets/fonts/MaShanZheng.ttf')").load().then((f) => document.fonts.add(f)),
     new FontFace('Cinzel', "url('assets/fonts/Cinzel.ttf')").load().then((f) => document.fonts.add(f)),
     new FontFace('XiaoWei', "url('assets/fonts/ZCOOLXiaoWei.ttf')").load().then((f) => document.fonts.add(f)),
-  ]); } catch (e) { console.warn('font load fail', e); }
+  ]).catch((e) => console.warn('font load fail', e));
+  // 最多等 2.5 秒,慢网不阻塞进游戏(字体就绪后自动换上)
+  return Promise.race([p, new Promise((r) => setTimeout(r, 2500))]);
+}
+
+// 带重试的 GLTF 加载(抗不稳定网络)
+function loadOneRetry(loader, url, tries = 3) {
+  return new Promise((res) => {
+    const attempt = (n) => {
+      loader.load(url, (g) => res(g), undefined, () => {
+        if (n < tries) setTimeout(() => attempt(n + 1), 700 * n + Math.random() * 400);
+        else { console.warn('模型加载失败(已重试)', url); res(null); }
+      });
+    };
+    attempt(1);
+  });
 }
 
 export function loadModels(onProgress) {
   const loader = new GLTFLoader();
   const jobs = [];
-  const total = CHAR_LIST.length + PROP_LIST.length + DUNGEON_LIST.length;
+  const total = CORE_CHARS.length + PROP_LIST.length + DUNGEON_LIST.length;
   let done = 0;
   const tick = () => { done++; onProgress?.(done / total); };
-  const loadOne = (url) => new Promise((res) => {
-    loader.load(url, (g) => { tick(); res(g); }, undefined, (e) => { console.warn('模型加载失败', url, e); tick(); res(null); });
-  });
-  for (const c of CHAR_LIST) jobs.push(loadOne(`assets/models/chars/${c}.glb`).then((g) => { if (g) A.chars[c] = g; }));
-  for (const p of PROP_LIST) jobs.push(loadOne(`assets/models/props/${p}.gltf`).then((g) => { if (g) A.props[p] = prepStatic(g.scene); }));
-  for (const d of DUNGEON_LIST) jobs.push(loadOne(`assets/models/dungeon/${d}.glb`).then((g) => { if (g) A.dungeon[d] = prepStatic(g.scene); }));
+  const one = (url) => loadOneRetry(loader, url).then((g) => { tick(); return g; });
+  for (const c of CORE_CHARS) jobs.push(one(`assets/models/chars/${c}.glb`).then((g) => { if (g) A.chars[c] = g; }));
+  for (const p of PROP_LIST) jobs.push(one(`assets/models/props/${p}.gltf`).then((g) => { if (g) A.props[p] = prepStatic(g.scene); }));
+  for (const d of DUNGEON_LIST) jobs.push(one(`assets/models/dungeon/${d}.glb`).then((g) => { if (g) A.dungeon[d] = prepStatic(g.scene); }));
   return Promise.all(jobs).then(() => { A.ready = true; });
+}
+
+// 其余角色后台流式加载(每就位一个广播一次)
+export async function loadRestChars() {
+  const loader = new GLTFLoader();
+  for (const c of BG_CHARS) {
+    if (A.chars[c]) continue;
+    const g = await loadOneRetry(loader, `assets/models/chars/${c}.glb`, 4);
+    if (g) {
+      A.chars[c] = g;
+      dispatchEvent(new CustomEvent('hg-model', { detail: c }));
+    }
+  }
+  A.restReady = true;
+  dispatchEvent(new CustomEvent('hg-model', { detail: '*' }));
 }
 
 function prepStatic(scene) {

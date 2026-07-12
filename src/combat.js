@@ -32,6 +32,13 @@ export function initCombat() {
       spawnZoneEnemies(z);
     }
   });
+  // 骷髅模型后台加载完成 → 若正在副本且还没敌人,补刷
+  addEventListener('hg-model', () => {
+    const z = activeZone;
+    if (z && (z.id === 'dungeon' || z.id === 'forest') && !CB.enemies.length && !flag(`cleared_${z.id}_${S.day}`)) {
+      spawnZoneEnemies(z);
+    }
+  });
   on('phase', () => {
     // 夜晚禁林更多敌人
   });
@@ -55,6 +62,7 @@ const ENEMY_TYPES = {
 
 export function spawnEnemy(type, x, z, { sleeping = true, boss = false } = {}) {
   const t = ENEMY_TYPES[type];
+  if (!A.chars[t.base]) return null; // 模型还在后台加载
   const zn = activeZone;
   const rig = new Rig(t.base, { scale: t.scale, glowColor: 0x9ae0ff, shadow: true });
   zn.group.add(rig.group);

@@ -226,14 +226,25 @@ function previewRig() {
   _previewTimer = setTimeout(() => {
     Object.assign(S, { house: cc.house, body: cc.body, hair: cc.hair, hairColor: cc.hairColor, skin: cc.skin });
     createPlayerRig();
-    import('./castle.js').then((m) => {
+    import('./castle.js').then(async (m) => {
       m.setZone('dorm');
       const zn = m.zones.get('dorm');
-      P.pos.set(zn.offset.x, 0, zn.offset.z + 2);
+      // 站在休息室西侧空地(避开中央圆桌),身后是壁炉光
+      P.pos.set(zn.offset.x - 7, 0, zn.offset.z + 10);
       P.rig.group.position.copy(P.pos);
-      P.rig.group.rotation.y = Math.PI * 0.9;
+      P.rig.group.rotation.y = 0.15; // 面向镜头(+z 侧)
       P.rig.play('idle');
+      // 预览补光:让五官发色看得清
+      const THREE = await import('three');
+      const key = new THREE.PointLight(0xffe8cc, 26, 9, 2);
+      key.position.set(1.2, 2.2, 2.4);
+      const fill = new THREE.PointLight(0xcad8ff, 10, 8, 2);
+      fill.position.set(-1.6, 1.6, 1.8);
+      const rim = new THREE.PointLight(0x8fb8ff, 9, 7, 2);
+      rim.position.set(0.4, 2.0, -1.6);
+      P.rig.group.add(key, fill, rim);
       window.__ccCam = true;
+      window.__ccWaveT = performance.now() + 1200;
     });
   }, 60);
 }
@@ -306,8 +317,16 @@ export function updateUI() {
     if (zn && P.rig) {
       const t = performance.now() / 1000;
       const px = P.rig.group.position;
-      E.camera.position.set(px.x + Math.sin(t * 0.24) * 0.4 + 0.6, px.y + 1.5, px.z + 3.4);
-      E.camera.lookAt(px.x, px.y + 1.05, px.z);
+      // 人物面向镜头,缓慢左右摇摆展示发型与侧脸
+      P.rig.group.rotation.y = 0.12 + Math.sin(t * 0.45) * 0.42;
+      // 构图:人物在屏幕右侧约 70%(左侧是创建面板)
+      E.camera.position.set(px.x + 1.35 + Math.sin(t * 0.18) * 0.15, px.y + 1.5, px.z + 2.75);
+      E.camera.lookAt(px.x - 0.85, px.y + 0.92, px.z - 0.1);
+      // 偶尔挥手打招呼
+      if (performance.now() > (window.__ccWaveT || 0)) {
+        window.__ccWaveT = performance.now() + 7000 + Math.random() * 4000;
+        P.rig.play('Waving', { once: true, then: 'idle' });
+      }
     }
   }
   if (S.started) drawClock();

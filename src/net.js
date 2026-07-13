@@ -186,7 +186,9 @@ function onPeerCast(m) {
 // 拦截本地施法进行广播(由 combat 调用不便,改为轮询状态)
 let stateT = 0, lastCastCount = 0;
 export function updateNet(dt) {
+  NET.ticksAll = (NET.ticksAll || 0) + 1;
   if (!NET.conn || !NET.room) return;
+  NET.ticksIn = (NET.ticksIn || 0) + 1;
   stateT -= dt;
   if (stateT <= 0) {
     stateT = 0.12;
